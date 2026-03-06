@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Five_in_a_Row</RootNamespace>
+    <TargetFramework>net9.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="VbPixelGameEngine">
+      <HintPath>vbPixelGameEngine.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
