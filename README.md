@@ -17,14 +17,29 @@ Both implementations feature a 15x15 game board and follow the standard Five-in-
 - **R**: Restart the game
 - **Escape**: Exit the game
 
+### Black Piece Special Rules
+
+This implementation includes professional Gomoku rules that restrict certain moves for black pieces:
+
+1. **Overline**: Black cannot form a line of more than 5 pieces in a row
+2. **Double Three**: Black cannot create two open three patterns simultaneously
+3. **Double Four**: Black cannot create two open four patterns simultaneously
+
+**What constitutes an open pattern:**
+- **Open Three**: A line of 3 same-colored pieces with empty spaces at both ends
+- **Open Four**: A line of 4 same-colored pieces with empty spaces at both ends
+
+When black attempts to make a move that violates these rules, the move is rejected, a violation message is displayed, and the turn skips to white. _White pieces are not subject to the above-mentioned restrictions._
+
 ## Features
 
 ### Common Features
 - 15x15 game board with traditional star points
 - Turn-based gameplay with black and white pieces
 - Win detection for five-in-a-row patterns
+- Professional Gomoku rules with black violation detection
 - Restart game functionality
-- Clear visual indicators for current player and game status
+- Clear visual indicators for current player, game status, and rule violations
 
 ### Python Version Extras
 - Enhanced visual effects with particle animations
@@ -77,6 +92,9 @@ python five_in_a_row.py
   - `Program` class inheriting from `PixelGameEngine`
   - `Piece` enum for game state management
   - `CheckWin` function for win condition detection
+  - `CheckBlackViolations` function for professional rule validation
+  - `CheckOverline`, `CheckDoubleThree`, `CheckDoubleFour` functions for specific rule checks
+  - `IsOpenThree` and `IsOpenFour` helper functions
   - `DrawBoard` and `HandlePlayerTurn` methods for game logic
 
 ### Python Version
@@ -85,6 +103,9 @@ python five_in_a_row.py
 - **Key Components**:
   - `Piece` enum for game state
   - `check_win` function for win condition detection
+  - `check_black_violations` function for professional rule validation
+  - `check_overline`, `check_double_three`, `check_double_four` functions for specific rule checks
+  - `is_open_three` and `is_open_four` helper functions
   - `draw_board` and `handle_player_turn` functions for game logic
   - `Particle` class for visual effects
   - Main game loop with event handling

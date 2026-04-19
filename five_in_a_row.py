@@ -45,6 +45,7 @@ game_over = False
 winner = Piece.EMPTY
 hover_pos = (-1, -1)
 particles = []
+black_has_violation = False
 
 
 class Particle:
@@ -84,13 +85,14 @@ except:
 
 def reset_game():
     """Function to reset the game."""
-    global board, current_player, game_over, winner, particles
+    global board, current_player, game_over, winner, particles, black_has_violation
     board = [[Piece.EMPTY for _ in range(
         GRID_SIZE)] for _ in range(GRID_SIZE)]
     current_player = Piece.BLACK
     game_over = False
     winner = Piece.EMPTY
     particles = []
+    black_has_violation = False
 
 
 def draw_board():
@@ -152,7 +154,7 @@ def draw_board():
 
 def handle_player_turn(mouse_pos):
     """Function to handle player moves."""
-    global current_player, game_over, winner
+    global current_player, game_over, winner, black_has_violation
 
     # Convert mouse position to grid coordinates
     grid_x = (mouse_pos[0] - BOARD_START_X) // CELL_SIZE
@@ -161,6 +163,20 @@ def handle_player_turn(mouse_pos):
     # Validate move
     if (0 <= grid_x < GRID_SIZE and 0 <= grid_y < GRID_SIZE and
             board[grid_x][grid_y] == Piece.EMPTY):
+
+        # Check professional rules for black pieces
+        if current_player == Piece.BLACK:
+            # Temporarily place the piece to check for violations
+            board[grid_x][grid_y] = current_player
+            has_violation = check_black_violations(grid_x, grid_y)
+            board[grid_x][grid_y] = Piece.EMPTY
+
+            if has_violation:
+                # Skip black's turn due to violation
+                black_has_violation = True
+                current_player = Piece.WHITE
+                return
+            black_has_violation = False
 
         # Place piece
         board[grid_x][grid_y] = current_player
@@ -182,9 +198,167 @@ def handle_player_turn(mouse_pos):
                 win_color = (50, 50, 50) if winner == Piece.BLACK else (
                     220, 220, 220)
                 particles.append(Particle(pos_x, pos_y, win_color))
+
+        # Switch player and reset violation state in time
+        if current_player == Piece.BLACK:
+            current_player = Piece.WHITE
         else:
-            # Switch player
-            current_player = Piece.WHITE if current_player == Piece.BLACK else Piece.BLACK
+            black_has_violation = False
+            current_player = Piece.BLACK
+
+
+def check_black_violations(x, y):
+    """Check for black piece violations (professional rules)."""
+    return check_overline(x, y) or check_double_three(x, y) or check_double_four(x, y)
+
+
+def check_overline(x, y):
+    """Check for overline (more than 5 in a row)."""
+    directions = [
+        (1, 0),   # Horizontal
+        (0, 1),   # Vertical
+        (1, 1),   # Diagonal /
+        (1, -1)   # Diagonal \
+    ]
+    player = board[x][y]
+
+    for dx, dy in directions:
+        count = 1  # Current piece
+
+        # Check positive direction
+        for i in range(1, 6):  # Check up to 5 pieces beyond win condition
+            nx, ny = x + dx * i, y + dy * i
+            if not (0 <= nx < GRID_SIZE and 0 <= ny < GRID_SIZE):
+                break
+            if board[nx][ny] != player:
+                break
+            count += 1
+
+        # Check negative direction
+        for i in range(1, 6):  # Check up to 5 pieces beyond win condition
+            nx, ny = x - dx * i, y - dy * i
+            if not (0 <= nx < GRID_SIZE and 0 <= ny < GRID_SIZE):
+                break
+            if board[nx][ny] != player:
+                break
+            count += 1
+
+        if count > 5:
+            return True
+
+    return False
+
+
+def check_double_three(x, y):
+    """Check for double three violation."""
+    directions = [
+        (1, 0),   # Horizontal
+        (0, 1),   # Vertical
+        (1, 1),   # Diagonal /
+        (1, -1)   # Diagonal \
+    ]
+    player = board[x][y]
+    three_count = 0
+
+    for dx, dy in directions:
+        # Check for open three in this direction
+        if is_open_three(x, y, dx, dy, player):
+            three_count += 1
+            if three_count >= 2:
+                return True
+
+    return False
+
+
+def check_double_four(x, y):
+    """Check for double four violation."""
+    directions = [
+        (1, 0),   # Horizontal
+        (0, 1),   # Vertical
+        (1, 1),   # Diagonal /
+        (1, -1)   # Diagonal \
+    ]
+    player = board[x][y]
+    four_count = 0
+
+    for dx, dy in directions:
+        # Check for open four in this direction
+        if is_open_four(x, y, dx, dy, player):
+            four_count += 1
+            if four_count >= 2:
+                return True
+
+    return False
+
+
+def is_open_three(x, y, dx, dy, player):
+    """Check if the current position forms an open three in the given direction."""
+    count = 1
+    open_ends = 0
+
+    # Check positive direction
+    for i in range(1, 4):
+        nx, ny = x + dx * i, y + dy * i
+        if not (0 <= nx < GRID_SIZE and 0 <= ny < GRID_SIZE):
+            break
+        if board[nx][ny] == player:
+            count += 1
+        elif board[nx][ny] == Piece.EMPTY:
+            open_ends += 1
+            break
+        else:
+            break
+
+    # Check negative direction
+    for i in range(1, 4):
+        nx, ny = x - dx * i, y - dy * i
+        if not (0 <= nx < GRID_SIZE and 0 <= ny < GRID_SIZE):
+            break
+        if board[nx][ny] == player:
+            count += 1
+        elif board[nx][ny] == Piece.EMPTY:
+            open_ends += 1
+            break
+        else:
+            break
+
+    # Open three has exactly 3 pieces and 2 open ends
+    return count == 3 and open_ends == 2
+
+
+def is_open_four(x, y, dx, dy, player):
+    """Check if the current position forms an open four in the given direction."""
+    count = 1
+    open_ends = 0
+
+    # Check positive direction
+    for i in range(1, 5):
+        nx, ny = x + dx * i, y + dy * i
+        if not (0 <= nx < GRID_SIZE and 0 <= ny < GRID_SIZE):
+            break
+        if board[nx][ny] == player:
+            count += 1
+        elif board[nx][ny] == Piece.EMPTY:
+            open_ends += 1
+            break
+        else:
+            break
+
+    # Check negative direction
+    for i in range(1, 5):
+        nx, ny = x - dx * i, y - dy * i
+        if not (0 <= nx < GRID_SIZE and 0 <= ny < GRID_SIZE):
+            break
+        if board[nx][ny] == player:
+            count += 1
+        elif board[nx][ny] == Piece.EMPTY:
+            open_ends += 1
+            break
+        else:
+            break
+
+    # Open four has exactly 4 pieces and 2 open ends
+    return count == 4 and open_ends == 2
 
 
 def check_win(x, y):
@@ -230,6 +404,13 @@ def draw_ui():
     screen.blit(title_text, (SCREEN_WIDTH//2 - title_text.get_width()//2, 20))
 
     color = (10, 10, 10) if current_player == Piece.BLACK else (220, 220, 220)
+
+    # Display violation message if black has a violation
+    if black_has_violation:
+        violation_text = small_font.render(
+            "BLACK VIOLATION! WHITE'S TURN", True, (255, 0, 0))
+        screen.blit(violation_text, (10, 70))
+
     # Draw game status
     if not game_over:
         status_text = "BLACK'S TURN" if current_player == Piece.BLACK else "WHITE'S TURN"
